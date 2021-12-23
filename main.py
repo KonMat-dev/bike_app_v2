@@ -1,5 +1,5 @@
 import shutil
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, status, UploadFile, File
@@ -85,7 +85,11 @@ def update(request: schemas.UserCreate, db: Session = Depends(get_db),
 
 @app.post("/posts/", tags=['Post'])
 def create_post(
-        title: str, description: str, file: UploadFile = File(...), db: Session = Depends(get_db),
+        title: str, price: float, description: str, tape_of_service: str, category_of_bike: str,
+        address_city: str, address_number: str, address_province: str,
+        address_street: str,
+        file: UploadFile = File(...),
+        db: Session = Depends(get_db),
         current_user: models.User = Depends(get_current_user)
 ):
     user_id = current_user.id
@@ -94,7 +98,10 @@ def create_post(
         shutil.copyfileobj(file.file, img)
     url = str("photo/" + file.filename)
 
-    return crud.create_post(db=db, user_id=user_id, title=title, description=description, url=url)
+    return crud.create_post(db=db, user_id=user_id, title=title, description=description, url=url,
+                            tape_of_service=tape_of_service, category_of_bike=category_of_bike, price=price,
+                            address_street=address_street, address_city=address_city, address_number=address_number,
+                            address_province=address_province)
 
 
 @app.post("/post_list/", tags=['Post'])
@@ -132,8 +139,12 @@ def user_post(db: Session = Depends(get_db), current_user: models.User = Depends
 
 
 @app.post("/search_post/", tags=['Post'])
-def post_filter(title: Optional[str] = None, db: Session = Depends(get_db)):
-    posts = crud.search_post(db=db, title=title)
+def post_filter(title: Optional[str] = None, tape_of_service: Optional[str] = None,
+                category_of_bike: Optional[str] = None, min_price: Optional[float] = None,
+                max_price: Optional[float] = None, db: Session = Depends(get_db)):
+    posts = crud.search_post(db=db, title=title, tape_of_service=tape_of_service, category_of_bike=category_of_bike,
+                             min_price=min_price, max_price=max_price)
+
     if posts is None:
         raise HTTPException(status_code=404, detail="Nie istnieje post o takim numerze ID")
     return posts

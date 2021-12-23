@@ -1,7 +1,7 @@
 import datetime
 
 
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime, Float
 from sqlalchemy.orm import relationship
 from Bike_app_v2.database import Base
 
@@ -30,10 +30,17 @@ class Post(Base):
     title = Column(String)
     description = Column(String)
     url = Column(String)
+    tape_of_service = Column(String)
+    address_province = Column(String)
+    address_city = Column(String)
+    address_street = Column(String)
+    address_number = Column(String)
+    price = Column(Float)
+    category_of_bike = Column(String)
+
     owner_id = Column(Integer, ForeignKey("user.id"))
 
     owner = relationship("User", back_populates="post")
-
 
 class Comment(Base):
 
