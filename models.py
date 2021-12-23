@@ -1,10 +1,8 @@
 import datetime
 
-from django.forms import URLField
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime
-#from sqlalchemy_utils import URLType
-from sqlalchemy.orm import relationship
 
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime
+from sqlalchemy.orm import relationship
 from Bike_app_v2.database import Base
 
 
@@ -20,6 +18,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
 
     post = relationship("Post", back_populates="owner")
+    user_comment = relationship("Comment", back_populates="comment_related")
 
 
 class Post(Base):
@@ -36,3 +35,17 @@ class Post(Base):
     owner = relationship("User", back_populates="post")
 
 
+class Comment(Base):
+
+    __tablename__ = "comments"
+
+    id = Column(Integer, primary_key=True)
+    created_date = Column(DateTime, default=datetime.datetime.utcnow)
+    is_active = Column(Boolean, default=True)
+    name = Column(String)
+    email = Column(String)
+    description = Column(String)
+    mark = Column(Integer)
+    owner_id = Column(Integer, ForeignKey("user.id"))
+
+    comment_related = relationship("User", back_populates="user_comment")

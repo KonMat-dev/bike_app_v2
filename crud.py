@@ -30,6 +30,10 @@ def get_user(db, username: str):
     return db.query(models.User).filter(models.User.username == username).first()
 
 
+def get_user_by_id(db, user_id: int):
+    return db.query(models.User).filter(models.User.id == user_id).first()
+
+
 def create_user(db: Session, user: schemas.UserCreate):
     db_user = models.User(username=user.username, hashed_password=get_password_hash(user.password))
     db.add(db_user)
@@ -76,3 +80,22 @@ def get_user_post(db, user_id: int):
 
 def post_list(db):
     return db.query(models.Post).all()
+
+
+def search_post(db, title: Optional[str] = None):
+    search = None
+    if title is not None:
+        search = db.query(models.Post).filter(models.Post.title == title).all()
+    else:
+        search = db.query(models.Post).all()
+    return search
+
+
+def create_comment(db: Session, user_id: int, name: str, description: str, email: str, mark: int):
+    if mark > 11 :
+        return " Ocena może być wprowadzona z zakresu o 1 do 10"
+    db_comment = models.Comment(owner_id=user_id, name=name, description=description, email=email, mark=mark)
+    db.add(db_comment)
+    db.commit()
+    db.refresh(db_comment)
+    return db_comment

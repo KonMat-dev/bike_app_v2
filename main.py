@@ -131,9 +131,28 @@ def user_post(db: Session = Depends(get_db), current_user: models.User = Depends
     return user_posts
 
 
-@app.post("/post/{value}", tags=['Post'])
-def post_filter(value: str, db: Session = Depends(get_db)):
-    post = crud.get_post(db=db, id=value)
-    if post is None:
+@app.post("/search_post/", tags=['Post'])
+def post_filter(title: Optional[str] = None, db: Session = Depends(get_db)):
+    posts = crud.search_post(db=db, title=title)
+    if posts is None:
         raise HTTPException(status_code=404, detail="Nie istnieje post o takim numerze ID")
-    return post
+    return posts
+
+
+@app.post("/user/{user_id}/comment/", tags=['Comment'])
+def create_comment(description: str, user_id: int, mark: int, name: Optional[str] = None, email: Optional[str] = None,
+                   db: Session = Depends(get_db),
+                   current_user: models.User = Depends(get_current_user)
+                   ):
+    return crud.create_comment(db=db, user_id=user_id, name=name, description=description, email=email, mark=mark)
+
+
+@app.post("/user_comments/{user_id}", tags=['User'])
+def post_detail(user_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    user = crud.get_user_by_id(db=db, user_id=user_id)
+    comment = db.query(models.Comment).filter(models.Comment.owner_id == user_id)
+    active_comment = comment.filter(models.Comment.is_active == True).all()
+
+    if user is None:
+        raise HTTPException(status_code=404, detail="Nie istnieje user o takim numerze ID")
+    return {"user": user, "comment": active_comment}

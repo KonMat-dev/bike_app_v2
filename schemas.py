@@ -38,3 +38,4 @@ class PostList(PostBase):
 
     class Config:
         orm_mode = True
+
