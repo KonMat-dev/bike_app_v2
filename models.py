@@ -14,6 +14,13 @@ class User(Base):
     description = Column(String)
     hashed_password = Column(String)
     email = Column(String)
+
+    url = Column(String)
+    address_province = Column(String)
+    address_city = Column(String)
+    address_street = Column(String)
+    address_number = Column(String)
+
     created_date = Column(DateTime, default=datetime.datetime.utcnow)
     is_active = Column(Boolean, default=True)
 
@@ -41,6 +48,7 @@ class Post(Base):
     owner_id = Column(Integer, ForeignKey("user.id"))
 
     owner = relationship("User", back_populates="post")
+    img_rel = relationship("Photo", back_populates="img_rel")
 
 class Comment(Base):
 
@@ -56,3 +64,13 @@ class Comment(Base):
     owner_id = Column(Integer, ForeignKey("user.id"))
 
     comment_related = relationship("User", back_populates="user_comment")
+
+class Photo(Base):
+
+    __tablename__ = "photo"
+
+    id = Column(Integer, primary_key=True)
+    comment_id = Column(Integer, ForeignKey("posts.id"))
+    photo_url = Column(String)
+
+    img_rel = relationship("Post", back_populates="img_rel")

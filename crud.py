@@ -77,6 +77,10 @@ def create_post(db: Session, user_id: int, price: float, title: str, description
     return db_post
 
 
+def add_photos(db: Session, post_id: str, picture: str):
+    photos = models.Photo(post_id=post_id, picture=picture)
+
+
 def get_post(db, id: int):
     return db.query(models.Post).filter(models.Post.id == id).first()
 
@@ -91,7 +95,7 @@ def post_list(db):
 
 def search_post(db, title: Optional[str] = None, tape_of_service: Optional[str] = None,
                 category_of_bike: Optional[str] = None, min_price: Optional[float] = None,
-                max_price: Optional[float] = None, address_city: Optional[float] = None,
+                max_price: Optional[float] = None,
                 address_province: Optional[float] = None,
                 ):
     search = db.query(models.Post).distinct(Post.id)
@@ -103,8 +107,6 @@ def search_post(db, title: Optional[str] = None, tape_of_service: Optional[str] 
         search = search.filter(models.Post.tape_of_service == tape_of_service)
     if category_of_bike is not None:
         search = search.filter(models.Post.category_of_bike == category_of_bike)
-    if address_city is not None:
-        search = search.filter(models.Post.address_city == address_city)
     if address_province is not None:
         search = search.filter(models.Post.address_province == address_province)
     if min_price is not None:
@@ -115,11 +117,22 @@ def search_post(db, title: Optional[str] = None, tape_of_service: Optional[str] 
     return search.all()
 
 
-def create_comment(db: Session, user_id: int, name: str, description: str, email: str, mark: int):
+def create_comment(db: Session, user_id: int, mark: int, comment: schemas.Comments):
     if mark > 11:
         return " Ocena może być wprowadzona z zakresu o 1 do 10"
-    db_comment = models.Comment(owner_id=user_id, name=name, description=description, email=email, mark=mark)
+    db_comment = models.Comment(owner_id=user_id, mark=mark, **comment.dict())
     db.add(db_comment)
     db.commit()
     db.refresh(db_comment)
     return db_comment
+
+
+def add_new_photos(db: Session, comment_id: int, photo_url: str):
+    db_photos = models.Photo(comment_id=comment_id, photo_url=photo_url)
+    db.add(db_photos)
+    db.commit()
+    db.refresh(db_photos)
+    return db_photos
+
+
+

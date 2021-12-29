@@ -1,6 +1,6 @@
 import shutil
 from datetime import timedelta
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import Depends, FastAPI, HTTPException, status, UploadFile, File
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -85,9 +85,15 @@ def update(request: schemas.UserCreate, db: Session = Depends(get_db),
 
 @app.post("/posts/", tags=['Post'])
 def create_post(
-        title: str, price: float, description: str, tape_of_service: str, category_of_bike: str,
-        address_city: str, address_number: str, address_province: str,
+        tape_of_service: str,
         address_street: str,
+        title: str,
+        description: str,
+        category_of_bike: str,
+        address_city: str,
+        address_province: str,
+        address_number: str,
+        price: float,
         file: UploadFile = File(...),
         db: Session = Depends(get_db),
         current_user: models.User = Depends(get_current_user)
@@ -102,6 +108,20 @@ def create_post(
                             tape_of_service=tape_of_service, category_of_bike=category_of_bike, price=price,
                             address_street=address_street, address_city=address_city, address_number=address_number,
                             address_province=address_province)
+
+
+@app.post("/post/{post_id}/add_photos", tags=['Post'])
+def add_photos(post_id: int, db: Session = Depends(get_db), files: List[UploadFile] = File(...)):
+    for img in files:
+        with open(f'{img.filename}', "wb") as buffer:
+            shutil.copyfileobj(img.file, buffer)
+            url = str("photo/" + img.filename)
+            print("kolejny wiersz")
+            print(str(url))
+
+            crud.add_new_photos(db=db, photo_url=url, comment_id=post_id)
+
+    return {"file_name": "Good"}
 
 
 @app.post("/post_list/", tags=['Post'])
@@ -141,29 +161,51 @@ def user_post(db: Session = Depends(get_db), current_user: models.User = Depends
 @app.post("/search_post/", tags=['Post'])
 def post_filter(title: Optional[str] = None, tape_of_service: Optional[str] = None,
                 category_of_bike: Optional[str] = None, min_price: Optional[float] = None,
+                address_province: Optional[str] = None,
                 max_price: Optional[float] = None, db: Session = Depends(get_db)):
     posts = crud.search_post(db=db, title=title, tape_of_service=tape_of_service, category_of_bike=category_of_bike,
-                             min_price=min_price, max_price=max_price)
+                             min_price=min_price, max_price=max_price, address_province=address_province)
 
     if posts is None:
         raise HTTPException(status_code=404, detail="Nie istnieje post o takim numerze ID")
     return posts
 
 
-@app.post("/user/{user_id}/comment/", tags=['Comment'])
-def create_comment(description: str, user_id: int, mark: int, name: Optional[str] = None, email: Optional[str] = None,
+@app.post("/user/{user_id}/comment/", response_model=schemas.CommentsList, tags=['Comment'])
+def create_comment(user_id: int, mark: int, comment: schemas.Comments,
                    db: Session = Depends(get_db),
                    current_user: models.User = Depends(get_current_user)
                    ):
-    return crud.create_comment(db=db, user_id=user_id, name=name, description=description, email=email, mark=mark)
+    return crud.create_comment(db=db, user_id=user_id, comment=comment, mark=mark)
 
 
 @app.post("/user_comments/{user_id}", tags=['User'])
-def post_detail(user_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    user = crud.get_user_by_id(db=db, user_id=user_id)
-    comment = db.query(models.Comment).filter(models.Comment.owner_id == user_id)
-    active_comment = comment.filter(models.Comment.is_active == True).all()
+def comment_detail(user_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    if user_id != Depends(get_current_user):
+        user = crud.get_user_by_id(db=db, user_id=user_id)
+        comment = db.query(models.Comment).filter(models.Comment.owner_id == user_id)
+        active_comment = comment.filter(models.Comment.is_active == True).all()
 
     if user is None:
         raise HTTPException(status_code=404, detail="Nie istnieje user o takim numerze ID")
     return {"user": user, "comment": active_comment}
+
+
+@app.put("/comment_update/{comment_id}", tags=['Comment'])
+def update(comment_id: int, request: schemas.Comments, db: Session = Depends(get_db),
+           current_user: models.User = Depends(get_current_user)):
+    db.query(models.Comment).filter(models.Comment.id == comment_id).update(request.dict())
+    db.commit()
+    return "Comment updated "
+
+
+@app.delete("/comment/{comment_id}", tags=['Comment'])
+def destroy(comment_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    post = db.query(models.Comment).filter(models.Comment.id == comment_id).delete(synchronize_session=False)
+    db.commit()
+    return "Comment ha been deleated "
+
+
+@app.post("/photos/")
+def all_photos(db: Session = Depends(get_db)):
+    return db.query(models.Photo).all()
